@@ -1,0 +1,99 @@
+<% include header.ejs %>
+    <div>
+      <h1>2FA</h1>
+      <p>Thiết lập 2FA</p>
+      <p>Khi đã thiết lập thành công, hãy Đăng xuất <a class="btn btn-primary" href="/logout">Đăng xuất</a> và tiến hành Đăng nhập lại</p>
+      <h2>Google Authenticator (TOTP)</h2>
+      <p>Ứng dụng trên điện thoại (<a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2">Android</a> & <a href="https://itunes.apple.com/gb/app/google-authenticator/id388497605?mt=8">iPhone</a>) để tạo ra OTP ứng với thời gian thực.</p>
+      <button id="setupGoogle">Sử dụng Google</button>
+    </div>
+    <div>
+      <h3>Quét QR</h3>
+      <div id="workspace">
+      </div>
+    </div>
+    <script type="application/javascript">
+      function clearWorkspace() {
+        var element = document.getElementById('workspace');
+        while (element.firstChile) {
+          element.removeChild(element.firstChild);
+        }
+      }
+
+      var xhr = new XMLHttpRequest();
+      var googleButton = document.getElementById('setupGoogle');
+      googleButton.onclick = function setupGoogle() {
+        clearWorkspace();
+        xhr.open('GET', '/setupG2FA',true);
+        xhr.onreadystatechange = function () {
+          if(xhr.readyState == 4 && xhr.status == 200) {
+            var message = document.createElement('p');
+            message.innerHTML = 'Sử dụng ứng dụng Google Authenticator trên điện thoại Scan QR sau đó nhập mã và nhấn Thiết lập';
+            document.getElementById('workspace').appendChild(message);
+            var qrurl = xhr.responseText;
+            var image = document.createElement('img');
+            image.setAttribute('src', qrurl);
+            document.getElementById('workspace').appendChild(image);
+            var code = document.createElement('input');
+            code.setAttribute('type', 'number');
+            code.setAttribute('id', 'code');
+            document.getElementById('workspace').appendChild(code);
+            var submitG2FA = document.createElement('button');
+            submitG2FA.setAttribute('id', 'submitG2FA');
+            submitG2FA.innerHTML = 'Thiết lập';
+            document.getElementById('workspace').appendChild(submitG2FA);
+            submitG2FA.onclick = function() {
+              var pass = document.getElementById('code').value;
+              console.log(pass);
+              var xhr2 = new XMLHttpRequest();
+              xhr2.open('POST', '/loginG2FA', true);
+              xhr2.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+              xhr2.onreadystatechange = function() {
+                if (xhr2.readyState == 4 && xhr2.status == 200) {
+                  clearWorkspace();
+                  document.getElementById('workspace').innerHTML='Google Authenticator đã được thiết lập';
+                } else if (xhr2.readyState == 4 && xhr2.status !== 200) {
+                  clearWorkspace();
+                  document.getElementById('workspace').innerHTML='Error setting up Google Authenticator';
+                }
+              }
+              xhr2.send('code='+pass);
+            }
+
+          } else if (xhr.readyState == 4 && xhr.status !== 200) {
+          	document.getElementById('workspace').innerHTML ="error setting up Google 2FA";
+          }
+        };
+        xhr.send();
+      }
+
+      var fidoButton = document.getElementById('setupFido');
+      fidoButton.onclick = function setupFido() {
+        clearWorkspace();
+      	xhr.open('GET', '/registerU2F', true);
+      	xhr.onreadystatechange = function () {
+      	  if(xhr.readyState == 4 && xhr.status == 200) {
+      	    var registerRequest = [JSON.parse(xhr.responseText)];
+      	    console.log(registerRequest);
+      	    document.getElementById('workspace').innerHTML ="If your token has a button, press it when the light flashes";
+      	    u2f.register(registerRequest,[], function(data){
+      	      console.log(data);
+      	      var xhr2 = new XMLHttpRequest();
+              xhr2.open('POST', '/registerU2F', true);
+              xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+              xhr2.onreadystatechange = function() {
+      	        if (xhr2.readyState == 4 && xhr2.status == 200) {
+      	          document.getElementById('workspace').innerHTML ="Fido U2F Token enabled";
+      	        } else if (xhr2.readyState == 4 && xhr2.status !== 200) {
+      	          document.getElementById('workspace').innerHTML ="error setting up Fido U2F token";
+      	        }
+      	      }
+      	      xhr2.send(JSON.stringify(data));
+      	    });
+      	  }
+      	};
+      	xhr.send();
+      }
+    </script>
+    <script src="u2f-api.js"></script>
+<% include footer.ejs %>

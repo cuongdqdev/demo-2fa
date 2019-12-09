@@ -1,0 +1,44 @@
+<% include header.ejs %>
+    <div id="register">
+      <label for="username">Tên đăng nhập</label><br>
+      <input type="text" id="username"/>
+      <br>
+      <label for="password">Mật khẩu</label><br>
+      <input type="password" id="password"/>
+      <br>
+      <label for="password">Nhập lại mật khẩu</label><br>
+      <input type="password" id="passwordAgain"/>
+      <br><br>
+      <button class="btn btn-primary" id="registerButton">Đăng kí</button>
+      <script type="application/javascript">
+      	var xhr = new XMLHttpRequest();
+      	var button = document.getElementById('registerButton');
+      	button.onclick = function(){
+      		var username = document.getElementById('username').value;
+      		var password = document.getElementById('password').value;
+                  var passwordAgain = document.getElementById('passwordAgain').value;
+
+                  if (password !== passwordAgain) {
+                    alert("Passwords don't match");
+                    return;
+                  }
+
+      		var params = "username=" + username + "&password=" + password;
+      		xhr.open('POST', '/newUser',true);
+      		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+      		xhr.onreadystatechange = function () {
+      			if( xhr.readyState == 4 && xhr.status == 201) {
+      				//new user created
+      				//forward to 2FA addition page
+      				window.location = '/setup2FA';
+      			} else if (xhr.readyState == 4 && xhr.status == 400) {
+      				//show error
+      				alert(xhr.responseText);
+      			}
+      		}
+      		
+      		xhr.send(params);
+      	};
+      </script>
+    </div>
+<% include footer.ejs %>
